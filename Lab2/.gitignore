@@ -1,3 +1,13 @@
-build-*/
-shaders/*.spv
-imgui.ini
+# ????? ?????? (build, build-debug, build-release ? ?.?.)
+build*/
+out/
+cmake-build-*/
+
+# Visual Studio
+.vs/
+*.user
+CMakeUserPresets.json
+
+# ??????
+*.log
+*.spv
