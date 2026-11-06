@@ -1,9 +1,16 @@
-cmake_minimum_required(VERSION 3.20)
+﻿cmake_minimum_required(VERSION 3.20)
 include(FetchContent)
 
 project(vulkan-starter-app LANGUAGES C CXX)
 
-add_executable(${PROJECT_NAME} source/main.cpp source/graphics_internal.cpp source/application.cpp)
+add_executable(${PROJECT_NAME} source/main.cpp source/graphics_internal.cpp source/application.cpp source/mesh.cpp)
+
+# GLM: глубина в Vulkan лежит в [0, 1] (в OpenGL -- в [-1, 1]).
+# SHADER_DIR: папка со скомпилированными шейдерами, из неё их читает программа.
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+	GLM_FORCE_DEPTH_ZERO_TO_ONE
+	SHADER_DIR="${CMAKE_SOURCE_DIR}/shaders/"
+)
 
 if(LINUX)
 	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
@@ -48,6 +55,12 @@ FetchContent_Declare(
 	GIT_TAG v1.92.9
 )
 
+FetchContent_Declare(
+	glm
+	GIT_REPOSITORY https://github.com/g-truc/glm.git
+	GIT_TAG 1.0.1
+)
+
 find_package(Vulkan REQUIRED)
 
 set(GLFW_LIBRARY_TYPE STATIC)
@@ -60,10 +73,12 @@ FetchContent_MakeAvailable(
 	vk-bootstrap
 	VulkanMemoryAllocator
 	imgui
+	glm
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	glfw
+	glm::glm-header-only
 	Vulkan::Vulkan
 	vk-bootstrap::vk-bootstrap
 	GPUOpen::VulkanMemoryAllocator
@@ -106,6 +121,9 @@ if(GLSLC_FOUND)
 	# compile_shader(example.vert)
 	# compile_shader(example.frag)
 
+	compile_shader(object.vert)
+	compile_shader(object.frag)
+
 	add_custom_target(shaders DEPENDS ${_SHADER_BINARIES})
 	add_dependencies(${PROJECT_NAME} shaders)
-endif()
+endif()
