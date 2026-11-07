@@ -1,9 +1,17 @@
-cmake_minimum_required(VERSION 3.20)
+﻿cmake_minimum_required(VERSION 3.20)
 include(FetchContent)
 
 project(vulkan-starter-app LANGUAGES C CXX)
 
-add_executable(${PROJECT_NAME} source/main.cpp source/graphics_internal.cpp source/application.cpp)
+add_executable(${PROJECT_NAME} source/main.cpp source/graphics_internal.cpp source/application.cpp source/mesh.cpp source/vk_utils.cpp source/texture.cpp)
+
+# GLM: глубина в Vulkan лежит в [0, 1] (в OpenGL -- в [-1, 1]).
+# SHADER_DIR: папка со скомпилированными шейдерами, из неё их читает программа.
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+	GLM_FORCE_DEPTH_ZERO_TO_ONE
+	SHADER_DIR="${CMAKE_SOURCE_DIR}/shaders/"
+	TEXTURE_DIR="${CMAKE_SOURCE_DIR}/textures/"
+)
 
 if(LINUX)
 	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
@@ -48,6 +56,20 @@ FetchContent_Declare(
 	GIT_TAG v1.92.9
 )
 
+FetchContent_Declare(
+	glm
+	GIT_REPOSITORY https://github.com/g-truc/glm.git
+	GIT_TAG 1.0.1
+)
+
+# stb: однофайловые библиотеки; нужен stb_image.h (загрузка PNG/JPEG и др.).
+# У stb нет CMake-проекта, поэтому он только скачивается, а подключаем мы его include-папкой.
+FetchContent_Declare(
+	stb
+	GIT_REPOSITORY https://github.com/nothings/stb.git
+	GIT_TAG 8e2e85e5574aacda369c9faa558e9ebde73d8c98
+)
+
 find_package(Vulkan REQUIRED)
 
 set(GLFW_LIBRARY_TYPE STATIC)
@@ -60,16 +82,19 @@ FetchContent_MakeAvailable(
 	vk-bootstrap
 	VulkanMemoryAllocator
 	imgui
+	glm
+	stb
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	glfw
+	glm::glm-header-only
 	Vulkan::Vulkan
 	vk-bootstrap::vk-bootstrap
 	GPUOpen::VulkanMemoryAllocator
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+target_include_directories(${PROJECT_NAME} PRIVATE ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR})
 target_sources(${PROJECT_NAME} PRIVATE
 	${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
 	${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
@@ -106,6 +131,9 @@ if(GLSLC_FOUND)
 	# compile_shader(example.vert)
 	# compile_shader(example.frag)
 
+	compile_shader(lit.vert)
+	compile_shader(lit.frag)
+
 	add_custom_target(shaders DEPENDS ${_SHADER_BINARIES})
 	add_dependencies(${PROJECT_NAME} shaders)
-endif()
+endif()
